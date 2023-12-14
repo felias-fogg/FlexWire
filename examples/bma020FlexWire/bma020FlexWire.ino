@@ -4,10 +4,6 @@
 // Readout BMA020 chip
 
 
-#include <FlexI2CMaster.h>
-#include <avr/io.h>
-
-
 #include <FlexWire.h>
 
 FlexWire Wire = FlexWire(A4, A5);
