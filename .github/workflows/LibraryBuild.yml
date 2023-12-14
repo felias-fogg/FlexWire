@@ -52,7 +52,7 @@ jobs:
       - name: Compile all examples
         uses: ArminJo/arduino-test-compile@master
         with:
-          required-ibraries: SparkFun HTU21D Humidity and Temperature Sensor Breakout
+          required-libraries: SparkFun HTU21D Humidity and Temperature Sensor Breakout
           arduino-board-fqbn: ${{ matrix.arduino-boards-fqbn }}
           platform-url: ${{ matrix.platform-url }}
           build-properties: ${{ toJson(matrix.build-properties) }}
