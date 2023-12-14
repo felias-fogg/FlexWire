@@ -5,6 +5,6 @@
 
 extern FlexWire Wire;
 
-#define TwoWire FlexWire
+typedef FlexWire TwoWire;
 
 #endif 

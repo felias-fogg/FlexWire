@@ -13,9 +13,9 @@
 #include <FlexWire.h>
 
 FlexWire::FlexWire(uint8_t sda, uint8_t scl, bool internal_pullup): 
-  _sda(sda),
-  _scl(scl),
-  _pullup(internal_pullup)  { }
+  _pullup(internal_pullup)  {
+  setPins(sda, scl);
+}
 
 void FlexWire::begin(void) {
   _rxBufferIndex = 0;
@@ -27,6 +27,12 @@ void FlexWire::begin(void) {
 }
   
 void  FlexWire::setClock(uint32_t _) {
+}
+
+void FlexWire::setPins(uint8_t sda, uint8_t scl)
+{
+  _sda = sda;
+  _scl = scl;
 }
 
 void  FlexWire::beginTransmission(uint8_t address) {
@@ -79,23 +85,8 @@ size_t  FlexWire::write(const uint8_t *data, size_t quantity) {
   return trans;
 }
 
-uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity,
-		    uint32_t iaddress, uint8_t isize, uint8_t sendStop) {
+uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity, bool sendStop) {
   uint8_t localerror = 0;
-  if (isize > 0) {
-    // send internal address; this mode allows sending a repeated start to access
-    // some devices' internal registers. This function is executed by the hardware
-    // TWI module on other processors (for example Due's TWI_IADR and TWI_MMR registers)
-    beginTransmission(address);
-    // the maximum size of internal address is 3 bytes
-    if (isize > 3){
-      isize = 3;
-    }
-    // write internal register address - most significant byte first
-    while (isize-- > 0)
-      write((uint8_t)(iaddress >> (isize*8)));
-    endTransmission(false);
-  }
   // clamp to buffer length
   if(quantity > BUFFER_LENGTH){
     quantity = BUFFER_LENGTH;
@@ -103,35 +94,26 @@ uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity,
   localerror = !i2c_rep_start((address<<1) | I2C_READ);
   if (_error == 0 && localerror) _error = 2;
   // perform blocking read into buffer
-  for (uint8_t cnt=0; cnt < quantity; cnt++) 
-    _rxBuffer[cnt] = i2c_read(cnt == quantity-1);
+  if (!localerror) {
+    for (uint8_t cnt=0; cnt < quantity; cnt++) 
+      _rxBuffer[cnt] = i2c_read(cnt == quantity-1);
+  } else {
+    quantity = 0;
+  }
   // set rx buffer iterator vars
   _rxBufferIndex = 0;
   _rxBufferLength = quantity;
-  if (sendStop) {
+  if (sendStop || _error != 0) {
     _transmitting = 0;
     i2c_stop();
   }
   return quantity;
 }
 
-uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity, uint8_t sendStop) {
-  return requestFrom((uint8_t)address, (uint8_t)quantity, (uint32_t)0, (uint8_t)0, (uint8_t)sendStop);
+uint8_t FlexWire::requestFrom(int address, int quantity, bool sendStop) {
+   return requestFrom((uint8_t)address, (uint8_t)quantity, sendStop);
 }
-
-uint8_t FlexWire::requestFrom(int address, int quantity, int sendStop) {
-  return requestFrom((uint8_t)address, (uint8_t)quantity, (uint8_t)sendStop);
-}
-
-
-uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity) {
-  return requestFrom((uint8_t)address, (uint8_t)quantity, (uint8_t)true);
-}
-
-uint8_t FlexWire::requestFrom(int address, int quantity) {
-  return requestFrom((uint8_t)address, (uint8_t)quantity, (uint8_t)true);
-}
-
+   
 int FlexWire::available(void) {
   return _rxBufferLength - _rxBufferIndex;
 }
@@ -159,12 +141,15 @@ void FlexWire::flush(void) {
 
 // Init function. Needs to be called once in the beginning.
 // Returns false if SDA or SCL are low, which probably means 
-// a I2C bus lockup or that the lines are not pulled up.
+// an I2C bus lockup or that the lines are not pulled up.
 bool FlexWire::i2c_init(void) {
   digitalWrite(_sda, LOW);
   digitalWrite(_scl, LOW);
-  setHigh(_sda);
+  delayMicroseconds(I2C_DELAY/2);
   setHigh(_scl);
+  delayMicroseconds(I2C_DELAY/2);
+  setHigh(_sda);
+  delayMicroseconds(I2C_DELAY/2);
   if (digitalRead(_sda) == LOW || digitalRead(_scl) == LOW) return false;
   return true;
 }
@@ -172,10 +157,13 @@ bool FlexWire::i2c_init(void) {
 // Start transfer function: <addr> is the 8-bit I2C address (including the R/W
 // bit). 
 // Return: true if the slave replies with an "acknowledge", false otherwise
+// return also false when one of the lines is initially low (which might be a shortcut)
 bool FlexWire::i2c_start(uint8_t addr) {
+  if (digitalRead(_sda) == 0 || digitalRead(_scl) == 0) return false;
   setLow(_sda);
-  delayMicroseconds(DELAY);
+  delayMicroseconds(I2C_DELAY);
   setLow(_scl);
+  delayMicroseconds(I2C_DELAY/2);
   return i2c_write(addr);
 }
 
@@ -185,38 +173,39 @@ bool FlexWire::i2c_start(uint8_t addr) {
 // Return: true if the slave replies with an "acknowledge", false otherwise
 bool FlexWire::i2c_rep_start(uint8_t addr) {
   setHigh(_sda);
+  delayMicroseconds(I2C_DELAY/2);
   setHigh(_scl);
-  delayMicroseconds(DELAY);
+  delayMicroseconds(I2C_DELAY);
   return i2c_start(addr);
 }
 
 // Issue a stop condition, freeing the bus.
 void FlexWire::i2c_stop(void) {
   setLow(_sda);
-  delayMicroseconds(DELAY);
+  delayMicroseconds(I2C_DELAY);
   setHigh(_scl);
-  delayMicroseconds(DELAY);
+  delayMicroseconds(I2C_DELAY);
   setHigh(_sda);
-  delayMicroseconds(DELAY);
+  delayMicroseconds(I2C_DELAY);
 }
 
 // Write one byte to the slave chip that had been addressed
 // by the previous start call. <value> is the byte to be sent.
 // Return: true if the slave replies with an "acknowledge", false otherwise
 bool FlexWire::i2c_write(uint8_t value) {
-  for (uint8_t curr = 0X80; curr != 0; curr >>= 1) {
+  for (uint8_t curr = 0x80; curr != 0; curr >>= 1) {
     if (curr & value) setHigh(_sda); else  setLow(_sda); 
     setHigh(_scl);
-    delayMicroseconds(DELAY);
+    delayMicroseconds(I2C_DELAY);
     setLow(_scl);
   }
   // get Ack or Nak
   setHigh(_sda);
   setHigh(_scl);
-  delayMicroseconds(DELAY/2);
+  delayMicroseconds(I2C_DELAY/2);
   uint8_t ack = digitalRead(_sda);
   setLow(_scl);
-  delayMicroseconds(DELAY/2);  
+  delayMicroseconds(I2C_DELAY/2);  
   setLow(_sda);
   return ack == 0;
 }
@@ -228,35 +217,35 @@ uint8_t FlexWire::i2c_read(bool last) {
   setHigh(_sda);
   for (uint8_t i = 0; i < 8; i++) {
     b <<= 1;
-    delayMicroseconds(DELAY);
+    delayMicroseconds(I2C_DELAY);
     setHigh(_scl);
     if (digitalRead(_sda)) b |= 1;
     setLow(_scl);
   }
   if (last) setHigh(_sda); else setLow(_sda);
   setHigh(_scl);
-  delayMicroseconds(DELAY/2);
+  delayMicroseconds(I2C_DELAY/2);
   setLow(_scl);
-  delayMicroseconds(DELAY/2);  
+  delayMicroseconds(I2C_DELAY/2);  
   setLow(_sda);
   return b;
 }
 
 void FlexWire::setLow(uint8_t pin) {
-    noInterrupts();
+#ifdef ATOMIC_BLOCK
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+#endif
+  {
     if (_pullup) 
       digitalWrite(pin, LOW);
     pinMode(pin, OUTPUT);
-    interrupts();
+  }
 }
 
-
 void FlexWire::setHigh(uint8_t pin) {
-    noInterrupts();
     if (_pullup) 
       pinMode(pin, INPUT_PULLUP);
     else
       pinMode(pin, INPUT);
-    interrupts();
 }
 

@@ -34,7 +34,7 @@
 
 #include <FlexWire.h>
 
-FlexWire Wire = FlexWire(A4, A5, true);
+FlexWire Wire = FlexWire(A4, A5, false);
      
 void setup()
 {

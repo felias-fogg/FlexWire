@@ -1,5 +1,20 @@
 CHANGELOG for FlexWire
 
-V0.0.1 (30.1.2023)
+V1.0.0 (14.12.2023)
+  - Fix: Set received bytes to zero in call to requestFrom when I2C
+    device NAKs on the device address
+  - Changed DELAY to I2C_DELAY
+  - Added Atomic Blocks for level changes, provided the AVR
+    architecture is used
+  - Added new example: multi_i2c
+  - Added new method: setPins
+  - removed the requestFrom call with internal registers (not
+    documented, but present in the Wire lib)
+  - Added the possibility to instantiate class without pin arguments;
+    these have to be set later using setPins
+  - removed i2c_start_wait
+
+V0.0.1 (30.11.2023)
   - initial commit, merging SlowSoftI2CMaster and SlowSoftMaster
-  - contains already Wire.h in the library folder   
+  - contains already Wire.h in the library folder
+
