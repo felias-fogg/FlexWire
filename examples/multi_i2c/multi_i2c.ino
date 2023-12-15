@@ -3,8 +3,8 @@
  * We use the Sparkfun library for the HTU21D temp/humidity sensor to demonstrate that
 */
 
-#define SHARESCL 0
-#define SWITCHPINS 0
+#define SHARESCL 1
+#define SWITCHPINS 1
 
 #include <FlexWire.h>
 #include <SparkFunHTU21D.h>

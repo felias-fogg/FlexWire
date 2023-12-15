@@ -1,18 +1,27 @@
 /* Flexible Wire drop-in replacement */
 
-#ifndef FLEXWIRE
-#define FLEXWIRE
+#ifndef FLEXWIRE_h
+#define FLEXWIRE_h
+#define FLEXWIRE_VERSION 1.1.0
+
+// #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (<60 kHz)
 
 #include <Arduino.h>
 #include <inttypes.h>
 #if defined(ARDUINO_ARCH_AVR)
 #include <util/atomic.h>
+#ifndef AVR_OPTIMIZATION
+#define AVR_OPTIMIZATION 1
+#endif
 #endif
 
-#define FLEXWIRE_VERSION 1.0.0
 #define I2C_READ 1
 #define I2C_WRITE 0
-#define I2C_DELAY 4 // usec delay
+#if AVR_OPTIMIZATION
+#define I2C_DEFAULT_DELAY 5 // usec delay
+#else
+#define I2C_DEFAULT_DELAY 0 // usec delay
+#endif
 #define BUFFER_LENGTH 32
 #define I2C_MAXWAIT 5000
 
@@ -26,6 +35,18 @@ protected:
   uint8_t _sda;
   uint8_t _scl;
   bool _pullup;
+  uint8_t _i2cDelay;
+#if AVR_OPTIMIZATION
+  uint8_t _sdaBitMask;
+  uint8_t _sclBitMask;
+
+  volatile uint8_t *_sdaPortReg;
+  volatile uint8_t *_sclPortReg;
+  volatile uint8_t *_sdaDirReg;
+  volatile uint8_t *_sclDirReg;
+  volatile uint8_t *_sdaPinReg;
+  volatile uint8_t *_sclPinReg;
+#endif
 
   bool i2c_init(void);
   bool i2c_start(uint8_t addr);
@@ -33,8 +54,19 @@ protected:
   void i2c_stop(void);
   bool i2c_write(uint8_t value);
   uint8_t i2c_read(bool last);
-  void setHigh(uint8_t pin);
-  void setLow(uint8_t pin);
+#if AVR_OPTIMIZATION
+  inline void setSdaHigh(void); 
+  inline void setSdaLow(void); 
+  inline void setSclHigh(void);
+  inline void setSclLow(void); 
+#else
+  void setSdaHigh(void);
+  void setSdaLow(void);
+  void setSclHigh(void);
+  void setSclLow(void);
+#endif
+  inline uint8_t getSda(void) __attribute__((always_inline));
+  inline uint8_t getScl(void) __attribute__((always_inline));
   
 public:
   FlexWire(uint8_t sda = 0, uint8_t scl = 0, bool internal_pullup = false);

@@ -1,4 +1,20 @@
 CHANGELOG for FlexWire
+V1.1.0
+  - Added: If running on AVR architecture and AVR_OPTIMZATION is not
+    set to 0 in the header file, then direct port manipulation is used
+    to work on the I2C bus. That allows up to around 200 kHz bus
+    frequency.
+  - In this case, the default frequency is around 100 kHz. If you use
+    setClock, then <= 10000 set something around 10 kHz, <= 30000 sets
+    a clock of around 30 kHz, <= 200000 set something around 100 kHz,
+    and anything above will give a bus speed of around 250 kHz. All on
+    16 MHz MCUs.
+  - If the AVR_OPTIMIZATION is not used, then the bus frequency is
+    around 50 kHz on 16MHz AVR chip.
+
+V1.0.1 (14.12.2023)
+  - Fix: in bma020FlexWire "#include <FlexI2CMaster.h>" removed
+  - Fix: added "required-libraries" to workflow
 
 V1.0.0 (14.12.2023)
   - Fix: Set received bytes to zero in call to requestFrom when I2C

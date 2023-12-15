@@ -12,7 +12,8 @@
 
 #include <FlexWire.h>
 
-FlexWire::FlexWire(uint8_t sda, uint8_t scl, bool internal_pullup): 
+FlexWire::FlexWire(uint8_t sda, uint8_t scl, bool internal_pullup):
+  _i2cDelay(I2C_DEFAULT_DELAY),
   _pullup(internal_pullup)  {
   setPins(sda, scl);
 }
@@ -22,17 +23,38 @@ void FlexWire::begin(void) {
   _rxBufferLength = 0;
   _error = 0;
   _transmitting = false;
-  
+  _i2cDelay = I2C_DEFAULT_DELAY;
   i2c_init();
 }
   
-void  FlexWire::setClock(uint32_t _) {
+void  FlexWire::setClock(uint32_t Hz) {
+#if AVR_OPTIMIZATION
+  if (Hz <= 10000UL) _i2cDelay = 90;
+  else if (Hz <= 30000UL) _i2cDelay = 30;
+  else if (Hz <= 200000UL) _i2cDelay = 5;
+  else _i2cDelay = 0;
+#endif
 }
 
 void FlexWire::setPins(uint8_t sda, uint8_t scl)
 {
   _sda = sda;
   _scl = scl;
+#if AVR_OPTIMIZATION
+  uint8_t port;
+
+  port = digitalPinToPort(_sda);
+  _sdaBitMask  = digitalPinToBitMask(_sda);
+  _sdaPortReg  = portOutputRegister(port);
+  _sdaDirReg   = portModeRegister(port);
+  _sdaPinReg   = portInputRegister(port);      // PinReg is the input register, not the Arduino pin.
+
+  port = digitalPinToPort(_scl);
+  _sclBitMask  = digitalPinToBitMask(_scl);
+  _sclPortReg  = portOutputRegister(port);
+  _sclDirReg   = portModeRegister(port);
+  _sclPinReg   = portInputRegister(port);
+#endif
 }
 
 void  FlexWire::beginTransmission(uint8_t address) {
@@ -145,12 +167,12 @@ void FlexWire::flush(void) {
 bool FlexWire::i2c_init(void) {
   digitalWrite(_sda, LOW);
   digitalWrite(_scl, LOW);
-  delayMicroseconds(I2C_DELAY/2);
-  setHigh(_scl);
-  delayMicroseconds(I2C_DELAY/2);
-  setHigh(_sda);
-  delayMicroseconds(I2C_DELAY/2);
-  if (digitalRead(_sda) == LOW || digitalRead(_scl) == LOW) return false;
+  delayMicroseconds(_i2cDelay/2);
+  setSclHigh();
+  delayMicroseconds(_i2cDelay/2);
+  setSdaHigh();
+  delayMicroseconds(_i2cDelay/2);
+  if (getSda() == 0 || getScl() == 0) return false;
   return true;
 }
 
@@ -159,11 +181,11 @@ bool FlexWire::i2c_init(void) {
 // Return: true if the slave replies with an "acknowledge", false otherwise
 // return also false when one of the lines is initially low (which might be a shortcut)
 bool FlexWire::i2c_start(uint8_t addr) {
-  if (digitalRead(_sda) == 0 || digitalRead(_scl) == 0) return false;
-  setLow(_sda);
-  delayMicroseconds(I2C_DELAY);
-  setLow(_scl);
-  delayMicroseconds(I2C_DELAY/2);
+  if (getSda() == 0 || getScl() == 0) return false;
+  setSdaLow();
+  delayMicroseconds(_i2cDelay);
+  setSclLow();
+  delayMicroseconds(_i2cDelay/2);
   return i2c_write(addr);
 }
 
@@ -172,21 +194,21 @@ bool FlexWire::i2c_start(uint8_t addr) {
 // stop condition.
 // Return: true if the slave replies with an "acknowledge", false otherwise
 bool FlexWire::i2c_rep_start(uint8_t addr) {
-  setHigh(_sda);
-  delayMicroseconds(I2C_DELAY/2);
-  setHigh(_scl);
-  delayMicroseconds(I2C_DELAY);
+  setSdaHigh();
+  delayMicroseconds(_i2cDelay/2);
+  setSclHigh();
+  delayMicroseconds(_i2cDelay);
   return i2c_start(addr);
 }
 
 // Issue a stop condition, freeing the bus.
 void FlexWire::i2c_stop(void) {
-  setLow(_sda);
-  delayMicroseconds(I2C_DELAY);
-  setHigh(_scl);
-  delayMicroseconds(I2C_DELAY);
-  setHigh(_sda);
-  delayMicroseconds(I2C_DELAY);
+  setSdaLow();
+  delayMicroseconds(_i2cDelay);
+  setSclHigh();
+  delayMicroseconds(_i2cDelay);
+  setSdaHigh();
+  delayMicroseconds(_i2cDelay);
 }
 
 // Write one byte to the slave chip that had been addressed
@@ -194,19 +216,19 @@ void FlexWire::i2c_stop(void) {
 // Return: true if the slave replies with an "acknowledge", false otherwise
 bool FlexWire::i2c_write(uint8_t value) {
   for (uint8_t curr = 0x80; curr != 0; curr >>= 1) {
-    if (curr & value) setHigh(_sda); else  setLow(_sda); 
-    setHigh(_scl);
-    delayMicroseconds(I2C_DELAY);
-    setLow(_scl);
+    if (curr & value) setSdaHigh(); else  setSdaLow(); 
+    setSclHigh();
+    delayMicroseconds(_i2cDelay);
+    setSclLow();
   }
   // get Ack or Nak
-  setHigh(_sda);
-  setHigh(_scl);
-  delayMicroseconds(I2C_DELAY/2);
-  uint8_t ack = digitalRead(_sda);
-  setLow(_scl);
-  delayMicroseconds(I2C_DELAY/2);  
-  setLow(_sda);
+  setSdaHigh();
+  setSclHigh();
+  delayMicroseconds(_i2cDelay/2);
+  uint8_t ack = getSda();
+  setSclLow();
+  delayMicroseconds(_i2cDelay/2);  
+  setSdaLow();
   return ack == 0;
 }
 
@@ -214,38 +236,111 @@ bool FlexWire::i2c_write(uint8_t value) {
 // the byte in order to terminate the read sequence. 
 uint8_t FlexWire::i2c_read(bool last) {
   uint8_t b = 0;
-  setHigh(_sda);
+  setSdaHigh();
   for (uint8_t i = 0; i < 8; i++) {
     b <<= 1;
-    delayMicroseconds(I2C_DELAY);
-    setHigh(_scl);
-    if (digitalRead(_sda)) b |= 1;
-    setLow(_scl);
+    delayMicroseconds(_i2cDelay);
+    setSclHigh();
+    if (getSda()) b |= 1;
+    setSclLow();
   }
-  if (last) setHigh(_sda); else setLow(_sda);
-  setHigh(_scl);
-  delayMicroseconds(I2C_DELAY/2);
-  setLow(_scl);
-  delayMicroseconds(I2C_DELAY/2);  
-  setLow(_sda);
+  if (last) setSdaHigh(); else setSdaLow();
+  setSclHigh();
+  delayMicroseconds(_i2cDelay/2);
+  setSclLow();
+  delayMicroseconds(_i2cDelay/2);  
+  setSdaLow();
   return b;
 }
 
-void FlexWire::setLow(uint8_t pin) {
+#if AVR_OPTIMIZATION
+inline void FlexWire::setSdaLow(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    *_sdaPortReg &= ~_sdaBitMask;
+    *_sdaDirReg  |=  _sdaBitMask;
+
+  }
+}
+
+void FlexWire::setSdaHigh(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    *_sdaDirReg &= ~_sdaBitMask;
+    if(_pullup)  *_sdaPortReg |= _sdaBitMask; 
+
+  }
+}
+
+void FlexWire::setSclLow(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    *_sclPortReg &= ~_sclBitMask;
+    *_sclDirReg  |=  _sclBitMask;
+  }
+}
+
+void FlexWire::setSclHigh(void) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+  {
+    *_sclDirReg &= ~_sclBitMask;
+    if(_pullup) { *_sclPortReg |= _sclBitMask; }
+  }
+}
+
+uint8_t FlexWire::getSda(void) {
+  return  ((uint8_t) (*_sdaPinReg & _sdaBitMask) ? 1 : 0);
+}
+
+uint8_t FlexWire::getScl(void) {
+  return  ((uint8_t) (*_sclPinReg & _sclBitMask) ? 1 : 0);
+}
+
+
+#else
+
+void FlexWire::setSdaLow(void) {
 #ifdef ATOMIC_BLOCK
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 #endif
   {
     if (_pullup) 
-      digitalWrite(pin, LOW);
-    pinMode(pin, OUTPUT);
+      digitalWrite(_sda, LOW);
+    pinMode(_sda, OUTPUT);
   }
 }
 
-void FlexWire::setHigh(uint8_t pin) {
+void FlexWire::setSdaHigh(void) {
     if (_pullup) 
-      pinMode(pin, INPUT_PULLUP);
+      pinMode(_sda, INPUT_PULLUP);
     else
-      pinMode(pin, INPUT);
+      pinMode(_sda, INPUT);
 }
 
+void FlexWire::setSclLow(void) {
+#ifdef ATOMIC_BLOCK
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+#endif
+  {
+    if (_pullup) 
+      digitalWrite(_scl, LOW);
+    pinMode(_scl, OUTPUT);
+  }
+}
+
+void FlexWire::setSclHigh(void) {
+    if (_pullup) 
+      pinMode(_scl, INPUT_PULLUP);
+    else
+      pinMode(_scl, INPUT);
+}
+
+uint8_t FlexWire::getSda(void) {
+  return  (digitalRead(_sda));
+}
+
+uint8_t FlexWire::getScl(void) {
+  return  (digitalRead(_scl));
+}
+
+#endif
