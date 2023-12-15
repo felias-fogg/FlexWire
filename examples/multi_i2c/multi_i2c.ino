@@ -42,6 +42,7 @@ void setup()
     Wire.setPins(sdapin[i], sclpin);
     htu.begin();
   }
+  Wire.setClock(90000);
 #else
   for (uint8_t i=0; i < MAXSENSOR; i++) htu[i].begin(wire[i]);
 #endif

@@ -31,11 +31,11 @@ void  FlexWire::setClock(uint32_t Hz) {
   uint16_t codeDelay;
   _i2cDelay = 1000000UL / Hz ;
 #if AVR_OPTIMIZATION
-  codeDelay = 112000000UL / F_CPU; // us delay by code
+  codeDelay = 100000000UL / F_CPU; // us delay by code
 #else
   codeDelay = 288000000UL / F_CPU; // us delay by code
 #endif
-  if (codedelay < _i2cDelay) _i2Delay = (_i2cDelay - codeDelay)/2;
+  if (codeDelay < _i2cDelay) _i2cDelay = (_i2cDelay - codeDelay + 1)/2;
   else _i2cDelay = 0;
 #endif
 }

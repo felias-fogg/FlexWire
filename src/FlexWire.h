@@ -2,7 +2,7 @@
 
 #ifndef FLEXWIRE_h
 #define FLEXWIRE_h
-#define FLEXWIRE_VERSION 1.1.0
+#define FLEXWIRE_VERSION 1.1.1
 
 // #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (55 kHz)
 
