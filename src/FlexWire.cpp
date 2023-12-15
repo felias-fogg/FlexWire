@@ -23,15 +23,19 @@ void FlexWire::begin(void) {
   _rxBufferLength = 0;
   _error = 0;
   _transmitting = false;
-  _i2cDelay = I2C_DEFAULT_DELAY;
   i2c_init();
 }
   
 void  FlexWire::setClock(uint32_t Hz) {
+#if defined(ARDUINO_ARCH_AVR)
+  uint16_t codeDelay;
+  _i2cDelay = 1000000UL / Hz ;
 #if AVR_OPTIMIZATION
-  if (Hz <= 10000UL) _i2cDelay = 90;
-  else if (Hz <= 30000UL) _i2cDelay = 30;
-  else if (Hz <= 200000UL) _i2cDelay = 5;
+  codeDelay = 112000000UL / F_CPU; // us delay by code
+#else
+  codeDelay = 288000000UL / F_CPU; // us delay by code
+#endif
+  if (codedelay < _i2cDelay) _i2Delay = (_i2cDelay - codeDelay)/2;
   else _i2cDelay = 0;
 #endif
 }
@@ -165,13 +169,15 @@ void FlexWire::flush(void) {
 // Returns false if SDA or SCL are low, which probably means 
 // an I2C bus lockup or that the lines are not pulled up.
 bool FlexWire::i2c_init(void) {
+  pinMode(_sda, INPUT);
   digitalWrite(_sda, LOW);
+  pinMode(_scl, INPUT);
   digitalWrite(_scl, LOW);
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   setSclHigh();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   setSdaHigh();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds((_i2cDelay+1)*4);
   if (getSda() == 0 || getScl() == 0) return false;
   return true;
 }
@@ -185,7 +191,7 @@ bool FlexWire::i2c_start(uint8_t addr) {
   setSdaLow();
   delayMicroseconds(_i2cDelay);
   setSclLow();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   return i2c_write(addr);
 }
 
@@ -195,7 +201,7 @@ bool FlexWire::i2c_start(uint8_t addr) {
 // Return: true if the slave replies with an "acknowledge", false otherwise
 bool FlexWire::i2c_rep_start(uint8_t addr) {
   setSdaHigh();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   setSclHigh();
   delayMicroseconds(_i2cDelay);
   return i2c_start(addr);
@@ -220,14 +226,15 @@ bool FlexWire::i2c_write(uint8_t value) {
     setSclHigh();
     delayMicroseconds(_i2cDelay);
     setSclLow();
+    delayMicroseconds(_i2cDelay);
   }
   // get Ack or Nak
   setSdaHigh();
   setSclHigh();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   uint8_t ack = getSda();
   setSclLow();
-  delayMicroseconds(_i2cDelay/2);  
+  delayMicroseconds(_i2cDelay);  
   setSdaLow();
   return ack == 0;
 }
@@ -242,13 +249,14 @@ uint8_t FlexWire::i2c_read(bool last) {
     delayMicroseconds(_i2cDelay);
     setSclHigh();
     if (getSda()) b |= 1;
+    delayMicroseconds(_i2cDelay);
     setSclLow();
   }
   if (last) setSdaHigh(); else setSdaLow();
   setSclHigh();
-  delayMicroseconds(_i2cDelay/2);
+  delayMicroseconds(_i2cDelay);
   setSclLow();
-  delayMicroseconds(_i2cDelay/2);  
+  delayMicroseconds(_i2cDelay);  
   setSdaLow();
   return b;
 }

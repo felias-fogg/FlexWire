@@ -4,7 +4,7 @@
 #define FLEXWIRE_h
 #define FLEXWIRE_VERSION 1.1.0
 
-// #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (<60 kHz)
+// #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (55 kHz)
 
 #include <Arduino.h>
 #include <inttypes.h>
@@ -18,7 +18,7 @@
 #define I2C_READ 1
 #define I2C_WRITE 0
 #if AVR_OPTIMIZATION
-#define I2C_DEFAULT_DELAY 5 // usec delay
+#define I2C_DEFAULT_DELAY 3 // usec delay
 #else
 #define I2C_DEFAULT_DELAY 0 // usec delay
 #endif
@@ -35,7 +35,7 @@ protected:
   uint8_t _sda;
   uint8_t _scl;
   bool _pullup;
-  uint8_t _i2cDelay;
+  uint16_t _i2cDelay;
 #if AVR_OPTIMIZATION
   uint8_t _sdaBitMask;
   uint8_t _sclBitMask;
