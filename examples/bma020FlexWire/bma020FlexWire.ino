@@ -6,7 +6,7 @@
 
 #include <FlexWire.h>
 
-FlexWire Wire = FlexWire(A4, A5);
+FlexWire Wire = FlexWire(2, 3);
 
 #define BMAADDR 0x38
 
