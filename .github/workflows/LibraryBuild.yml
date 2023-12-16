@@ -38,10 +38,17 @@ jobs:
         arduino-boards-fqbn:
           - arduino:avr:uno
           - arduino:avr:leonardo
+          - arduino:sam:arduino_due_x_dbg
+          - arduino:samd:arduino_zero_edbg
+          - rp2040:rp2040:rpipico
 
         # Choose the right platform for the boards we want to test. (maybe in the future Arduino will automatically do this for you)
         # With sketches-exclude you may exclude specific examples for a board. Use a comma separated list.
         #############################################################################################################
+        include:
+         - arduino-boards-fqbn: rp2040:rp2040:rpipico
+         - platform-url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
+
       # Do not cancel all jobs / architectures if one job fails
       fail-fast: false
 

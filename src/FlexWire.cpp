@@ -43,7 +43,9 @@ void  FlexWire::setClock(uint32_t Hz) {
 void FlexWire::setPins(uint8_t sda, uint8_t scl)
 {
   _sda = sda;
+  _sdastate = -1;
   _scl = scl;
+  _sclstate = -1;
 #if AVR_OPTIMIZATION
   uint8_t port;
 
@@ -171,8 +173,10 @@ void FlexWire::flush(void) {
 bool FlexWire::i2c_init(void) {
   pinMode(_sda, INPUT);
   digitalWrite(_sda, LOW);
+  _sdastate = 1;
   pinMode(_scl, INPUT);
   digitalWrite(_scl, LOW);
+  _sclstate = 1;
   delayMicroseconds(_i2cDelay);
   setSclHigh();
   delayMicroseconds(_i2cDelay);
@@ -263,36 +267,46 @@ uint8_t FlexWire::i2c_read(bool last) {
 
 #if AVR_OPTIMIZATION
 inline void FlexWire::setSdaLow(void) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    *_sdaPortReg &= ~_sdaBitMask;
-    *_sdaDirReg  |=  _sdaBitMask;
-
+  if (_sdastate != 0) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      *_sdaPortReg &= ~_sdaBitMask;
+      *_sdaDirReg  |=  _sdaBitMask;
+      _sdastate = 0;
+    }
   }
 }
 
 void FlexWire::setSdaHigh(void) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    *_sdaDirReg &= ~_sdaBitMask;
-    if(_pullup)  *_sdaPortReg |= _sdaBitMask; 
-
+  if (_sdastate != 1) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      *_sdaDirReg &= ~_sdaBitMask;
+      if(_pullup)  *_sdaPortReg |= _sdaBitMask; 
+      _sdastate = 1;
+    }
   }
 }
 
 void FlexWire::setSclLow(void) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    *_sclPortReg &= ~_sclBitMask;
-    *_sclDirReg  |=  _sclBitMask;
+  if (_sclstate != 0) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      *_sclPortReg &= ~_sclBitMask;
+      *_sclDirReg  |=  _sclBitMask;
+      _sclstate = 0;
+    }
   }
 }
 
 void FlexWire::setSclHigh(void) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
-  {
-    *_sclDirReg &= ~_sclBitMask;
-    if(_pullup) { *_sclPortReg |= _sclBitMask; }
+  if (_sclstate != 1) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+    {
+      *_sclDirReg &= ~_sclBitMask;
+      if(_pullup) { *_sclPortReg |= _sclBitMask; }
+      _sclstate = 1;
+    }
   }
 }
 
@@ -312,17 +326,23 @@ void FlexWire::setSdaLow(void) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 #endif
   {
-    if (_pullup) 
-      digitalWrite(_sda, LOW);
-    pinMode(_sda, OUTPUT);
+    if (_sdastate != 0) {
+      if (_pullup) 
+	digitalWrite(_sda, LOW);
+      pinMode(_sda, OUTPUT);
+      _sdastate = 0;
+    }
   }
 }
 
 void FlexWire::setSdaHigh(void) {
+  if (_sdastate != 1) {
     if (_pullup) 
       pinMode(_sda, INPUT_PULLUP);
     else
       pinMode(_sda, INPUT);
+    _sdastate = 1;
+  }
 }
 
 void FlexWire::setSclLow(void) {
@@ -330,17 +350,23 @@ void FlexWire::setSclLow(void) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 #endif
   {
-    if (_pullup) 
-      digitalWrite(_scl, LOW);
-    pinMode(_scl, OUTPUT);
+    if (_sclstate != 0) {
+      if (_pullup) 
+	digitalWrite(_scl, LOW);
+      pinMode(_scl, OUTPUT);
+      _sclstate = 0;
+    }
   }
 }
 
 void FlexWire::setSclHigh(void) {
+  if (_sclstate != 1) {
     if (_pullup) 
       pinMode(_scl, INPUT_PULLUP);
     else
       pinMode(_scl, INPUT);
+    _sclstate = 1;
+  }
 }
 
 uint8_t FlexWire::getSda(void) {

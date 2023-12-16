@@ -2,7 +2,7 @@
 
 #ifndef FLEXWIRE_h
 #define FLEXWIRE_h
-#define FLEXWIRE_VERSION 1.1.1
+#define FLEXWIRE_VERSION 1.1.2
 
 // #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (55 kHz)
 
@@ -36,6 +36,8 @@ protected:
   uint8_t _scl;
   bool _pullup;
   uint16_t _i2cDelay;
+  int8_t _sdastate;
+  int8_t _sclstate;
 #if AVR_OPTIMIZATION
   uint8_t _sdaBitMask;
   uint8_t _sclBitMask;

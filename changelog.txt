@@ -1,4 +1,12 @@
 CHANGELOG for FlexWire
+V1.1.2 (16.12.2023)
+  - added state vars for sda and scl in order to speed up and to avoid
+    glitches when running on RP2040.
+  - tested on Zero, Due, and RP2040; for the latter one should use the
+    Arduino core by earlephilhower; the official core is very slow
+    when it comes to digital I/O.
+  - added the above to the LibraryBuild file
+
 V1.1.1 (15.12.2023)
   - Fixed: setClock fixed so that the specified value is always an
     upper bound. 
