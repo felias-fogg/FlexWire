@@ -116,8 +116,8 @@ size_t  FlexWire::write(const uint8_t *data, size_t quantity) {
 uint8_t FlexWire::requestFrom(uint8_t address, uint8_t quantity, bool sendStop) {
   uint8_t localerror = 0;
   // clamp to buffer length
-  if(quantity > BUFFER_LENGTH){
-    quantity = BUFFER_LENGTH;
+  if(quantity > I2C_BUFFER_LENGTH){
+    quantity = I2C_BUFFER_LENGTH;
   }
   localerror = !i2c_rep_start((address<<1) | I2C_READ);
   if (_error == 0 && localerror) _error = 2;

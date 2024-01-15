@@ -2,7 +2,7 @@
 
 #ifndef FLEXWIRE_h
 #define FLEXWIRE_h
-#define FLEXWIRE_VERSION 1.1.2
+#define FLEXWIRE_VERSION 1.2.0
 
 // #define AVR_OPTIMIZATION 0 // without optimizations, less code, but much slower (55 kHz)
 
@@ -22,12 +22,24 @@
 #else
 #define I2C_DEFAULT_DELAY 0 // usec delay
 #endif
+
+#ifdef ESP32
+#define I2C_BUFFER_LENGTH 128
+#else
+#ifdef ARDUINO_ARCH_SAMD
+#define BUFFER_LENGTH 250
+#define I2C_BUFFER_LENGTH BUFFER_LENGTH
+#else // ordinary AVRs
 #define BUFFER_LENGTH 32
+#define I2C_BUFFER_LENGTH BUFFER_LENGTH
+#endif
+#endif
+
 #define I2C_MAXWAIT 5000
 
 class FlexWire {
 protected:
-  uint8_t _rxBuffer[BUFFER_LENGTH];
+  uint8_t _rxBuffer[I2C_BUFFER_LENGTH];
   uint8_t _rxBufferIndex;
   uint8_t _rxBufferLength;
   uint8_t _transmitting;

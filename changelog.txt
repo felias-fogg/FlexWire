@@ -1,4 +1,12 @@
 CHANGELOG for FlexWire
+V1.2.0 (15.1.2024)
+  - changed BUFFER_LENGTH to I2C_BUFFER_LENGTH for ESP32 in order to be compatible with ESP32 Wire lib
+  - BUFFER_LENGTH and I2C_BUFFER_LENGTH are now synonyms for all other
+    architectures (which might create problems) 
+  - set I2C_BUFFER_LENGTH to 128 for ESP32
+  - set I2C_BUFFER_LENGTH to 250 for ARDUINO_ARCH_SAMD
+  - it is still 32 for all other architectures
+
 V1.1.2 (16.12.2023)
   - added state vars for sda and scl in order to speed up and to avoid
     glitches when running on RP2040.
@@ -6,6 +14,8 @@ V1.1.2 (16.12.2023)
     Arduino core by earlephilhower; the official core is very slow
     when it comes to digital I/O.
   - added the above to the LibraryBuild file
+  - changed all examples: A4 -> 2, A5 -> 3 (because RP2040 does not
+    have A4 and A5)
 
 V1.1.1 (15.12.2023)
   - Fixed: setClock fixed so that the specified value is always an
