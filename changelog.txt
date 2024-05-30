@@ -1,4 +1,8 @@
 CHANGELOG for FlexWire
+V1.2.1 (30.5.2024)
+  - changed order of declaration for _pullup and _i2cdelay in order to
+  avoid a warning message
+
 V1.2.0 (15.1.2024)
   - changed BUFFER_LENGTH to I2C_BUFFER_LENGTH for ESP32 in order to be compatible with ESP32 Wire lib
   - BUFFER_LENGTH and I2C_BUFFER_LENGTH are now synonyms for all other
