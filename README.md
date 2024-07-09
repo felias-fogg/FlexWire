@@ -1,7 +1,6 @@
 # FlexWire
 
 [![License: LGPL v2.1](https://img.shields.io/badge/License-LGPLv2.1-blue.svg)](https://www.gnu.org/licenses/lgpl-2.1)
-[![Installation instructions](https://www.ardu-badge.com/badge/FlexWire.svg?)](https://www.ardu-badge.com/FlexWire)
 [![Commits since latest](https://img.shields.io/github/commits-since/felias-fogg/FlexWire/latest)](https://github.com/felias-fogg/FlexWire/commits/main)
 [![Build Status](https://github.com/felias-fogg/FlexWire/workflows/LibraryBuild/badge.svg)](https://github.com/felias-fogg/FlexWire/actions)
 ![Hit Counter](https://visitor-badge.laobi.icu/badge?page_id=felias-fogg.FlexWire)
