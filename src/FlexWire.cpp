@@ -25,7 +25,12 @@ void FlexWire::begin(void) {
   _transmitting = false;
   i2c_init();
 }
-  
+
+void FlexWire::end(void) {
+  pinMode(_sda, INPUT);
+  pinMode(_scl, INPUT);
+}
+
 void  FlexWire::setClock(uint32_t Hz) {
 #if defined(ARDUINO_ARCH_AVR)
   uint16_t codeDelay;
